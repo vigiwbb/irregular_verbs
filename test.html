@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Irregular Verbs Game with TTS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Comic Neue', cursive;
+        }
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            margin: 20px auto;
+            align-items: stretch;
+        }
+        .left-side {
+            width: 30%;
+            min-height: 200px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        .tunnel-container {
+            width: 30%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        .tunnel {
+            flex: 1;
+            background-image: url('tunnel.png');
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+            font-size: 24px;
+            color: white;
+            text-shadow: 2px 2px 4px #000;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .right-side {
+            width: 40%;
+            min-height: 200px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        .labels {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .base-label {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .verb {
+            padding: 15px;
+            margin: 10px;
+            background-color: #ff6347;
+            color: white;
+            font-size: 24px;
+            border-radius: 10px;
+            font-family: 'Comic Neue', cursive;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .verb:hover {
+            cursor: pointer;
+        }
+        .example-btn {
+            background-color: #ffffff;
+            color: #ff6347;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .transformed-verb-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 5px 0;
+        }
+        .past-tense {
+            padding: 15px;
+            background-color: #32cd32;
+            color: white;
+            font-size: 24px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            font-family: 'Comic Neue', cursive;
+            flex: 1;
+            margin: 0 5px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .past-participle {
+            padding: 15px;
+            background-color: #1e90ff;
+            color: white;
+            font-size: 24px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            font-family: 'Comic Neue', cursive;
+            flex: 1;
+            margin: 0 5px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .past-tense.visible, .past-participle.visible {
+            opacity: 1;
+            animation: bounce 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .verb.dragging {
+            animation: shake 0.5s infinite;
+        }
+        .group-select-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 10px;
+            font-size: 18px;
+            font-family: 'Comic Neue', cursive;
+            width: 90%;
+            max-width: 1200px;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .popup-content {
+            margin-bottom: 10px;
+        }
+        .popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .example-sentence {
+            margin: 10px 0;
+        }
+        .example-sentence .word {
+            color: #ff6347;
+            font-weight: bold;
+        }
+        .example-sentence .translation {
+            display: block;
+            color: #666;
+            font-size: 16px;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>Irregular Verbs Adventure</h1>
+
+    <div class="group-select-container">
+        <label for="group-select">Select a verb group:</label>
+        <select id="group-select">
+            <!-- Options added dynamically -->
+        </select>
+    </div>
+
+    <div class="game-container">
+        <div class="left-side" id="base-verbs">
+            <div class="base-label">Verb Base Form</div>
+        </div>
+        <div class="tunnel-container">
+            <div class="tunnel" id="verb-tunnel">Magic Verb Tunnel</div>
+        </div>
+        <div class="right-side" id="transformed-verbs">
+            <div class="labels">
+                <span>Past Tense</span>
+                <span>Past Participle</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="popup" id="popup">
+        <button class="close-btn" id="closePopup">×</button>
+        <div class="popup-content" id="popupContent"></div>
+    </div>
+
+    <script>
+        const verbGroups = [        
+{
+        "rule": "Change vowels: i/e to a to u ",
+        "explanation": "Verbs where the base form has 'i or e',get changed to 'a' in past and 'u' in past participle",
+        "example": "e.g., 'sing' → 'sang' → 'sung', 'begin' → 'began' → 'begun'",
+        "verbs": [
+            {
+                "base": "begin",
+                "past": "began",
+                "pastParticiple": "begun",
+                "baseChinese": "开始",
+                "pastChinese": "开始了",
+                "participleChinese": "已开始",
+                "example": [
+                    { "sentence": "They begin the meeting at noon.", "chinese": "他们中午开始会议。" },
+                    { "sentence": "She began writing a book last year.", "chinese": "她去年开始写一本书。" },
+                    { "sentence": "We have begun a new project recently.", "chinese": "我们最近已经开始了一个新项目。" }
+                ]
+            },
+            {
+                "base": "drink",
+                "past": "drank",
+                "pastParticiple": "drunk",
+                "baseChinese": "喝",
+                "pastChinese": "喝了",
+                "participleChinese": "已喝",
+                "example": [
+                    { "sentence": "I drink tea every afternoon.", "chinese": "我每天下午喝茶。" },
+                    { "sentence": "He drank juice at the party.", "chinese": "他在派对上喝了果汁。" },
+                    { "sentence": "They have drunk all the water.", "chinese": "他们已经喝了所有的水。" }
+                ]
+            },
+            {
+                "base": "ring",
+                "past": "rang",
+                "pastParticiple": "rung",
+                "baseChinese": "响",
+                "pastChinese": "响了",
+                "participleChinese": "已响",
+                "example": [
+                    { "sentence": "I ring the bell every morning.", "chinese": "我每天早上按铃。" },
+                    { "sentence": "The phone rang loudly yesterday.", "chinese": "昨天电话响得很响。" },
+                    { "sentence": "The alarm has rung for five minutes.", "chinese": "警报已经响了五分钟。" }
+                ]
+            },
+            {
+                "base": "shrink",
+                "past": "shrank",
+                "pastParticiple": "shrunk",
+                "baseChinese": "缩",
+                "pastChinese": "缩了",
+                "participleChinese": "已缩",
+                "example": [
+                    { "sentence": "I shrink my clothes in the dryer.", "chinese": "我在烘干机里缩了我的衣服。" },
+                    { "sentence": "The sweater shrank after washing.", "chinese": "毛衣洗后缩水了。" },
+                    { "sentence": "The fabric has shrunk too much.", "chinese": "布料已经缩得太多了。" }
+                ]
+            },
+            {
+                "base": "sing",
+                "past": "sang",
+                "pastParticiple": "sung",
+                "baseChinese": "唱",
+                "pastChinese": "唱了",
+                "participleChinese": "已唱",
+                "example": [
+                    { "sentence": "We sing songs at the campfire.", "chinese": "我们在篝火旁唱歌。" },
+                    { "sentence": "She sang beautifully last night.", "chinese": "她昨晚唱得很美。" },
+                    { "sentence": "They have sung all the hits.", "chinese": "他们已经唱了所有热门歌曲。" }
+                ]
+            },
+            {
+                "base": "sink",
+                "past": "sank",
+                "pastParticiple": "sunk",
+                "baseChinese": "沉",
+                "pastChinese": "沉了",
+                "participleChinese": "已沉",
+                "example": [
+                    { "sentence": "Boats sink in stormy weather.", "chinese": "船在暴风雨中沉没。" },
+                    { "sentence": "The ship sank in the ocean.", "chinese": "船在海洋中沉没了。" },
+                    { "sentence": "The wreck has sunk to the bottom.", "chinese": "残骸已经沉到海底。" }
+                ]
+            },
+            {
+                "base": "spring",
+                "past": "sprang",
+                "pastParticiple": "sprung",
+                "baseChinese": "跳",
+                "pastChinese": "跳了",
+                "participleChinese": "已跳",
+                "example": [
+                    { "sentence": "Cats spring onto high places.", "chinese": "猫跳到高处。" },
+                    { "sentence": "He sprang out of his chair.", "chinese": "他从椅子上跳了起来。" },
+                    { "sentence": "The trap has sprung shut.", "chinese": "陷阱已经弹簧关闭。" }
+                ]
+            },
+            {
+                "base": "stink",
+                "past": "stank",
+                "pastParticiple": "stunk",
+                "baseChinese": "臭",
+                "pastChinese": "臭了",
+                "participleChinese": "已臭",
+                "example": [
+                    { "sentence": "Garbage bins stink in summer.", "chinese": "夏天垃圾桶很臭。" },
+                    { "sentence": "The fish stank after a day.", "chinese": "鱼一天后臭了。" },
+                    { "sentence": "The room has stunk for hours.", "chinese": "房间已经臭了好几个小时。" }
+                ]
+            },
+            {
+                "base": "swim",
+                "past": "swam",
+                "pastParticiple": "swum",
+                "baseChinese": "游泳",
+                "pastChinese": "游了",
+                "participleChinese": "已游",
+                "example": [
+                    { "sentence": "Kids swim in the lake every day.", "chinese": "孩子们每天在湖里游泳。" },
+                    { "sentence": "She swam across the river.", "chinese": "她游过了河。" },
+                    { "sentence": "They have swum in the sea.", "chinese": "他们已经在海里游过了。" }
+                ]
+            }
+        ]
+    },
+    {
+        "rule": "Change vowels: i to u to u",
+        "explanation": "Verbs where the base form has 'i', and both the past tense and past participle have 'u'.",
+        "example": "e.g., 'dig' → 'dug' → 'dug'",
+        "verbs": [
+            {
+                "base": "dig",
+                "past": "dug",
+                "pastParticiple": "dug",
+                "baseChinese": "挖",
+                "pastChinese": "挖了",
+                "participleChinese": "已挖",
+                "example": [
+                    { "sentence": "Dogs dig holes in the yard.", "chinese": "狗在院子里挖洞。" },
+                    { "sentence": "He dug a trench yesterday.", "chinese": "他昨天挖了一条沟。" },
+                    { "sentence": "The garden has been dug up.", "chinese": "花园已经被挖开了。" }
+                ]
+            },
+            {
+                "base": "fling",
+                "past": "flung",
+                "pastParticiple": "flung",
+                "baseChinese": "扔",
+                "pastChinese": "扔了",
+                "participleChinese": "已扔",
+                "example": [
+                    { "sentence": "I fling the ball to my dog.", "chinese": "我把球扔给我的狗。" },
+                    { "sentence": "She flung the door open.", "chinese": "她猛地打开了门。" },
+                    { "sentence": "The papers have been flung aside.", "chinese": "纸张已经被扔到一边。" }
+                ]
+            },
+            {
+                "base": "spin",
+                "past": "spun",
+                "pastParticiple": "spun",
+                "baseChinese": "旋转",
+                "pastChinese": "旋了",
+                "participleChinese": "已旋",
+                "example": [
+                    { "sentence": "I spin the wheel for fun.", "chinese": "我为了好玩旋转轮子。" },
+                    { "sentence": "The top spun on the floor.", "chinese": "陀螺在地板上旋转。" },
+                    { "sentence": "The yarn has been spun finely.", "chinese": "纱线已经被细细地纺出来了。" }
+                ]
+            },
+            {
+                "base": "stick",
+                "past": "stuck",
+                "pastParticiple": "stuck",
+                "baseChinese": "粘",
+                "pastChinese": "粘了",
+                "participleChinese": "已粘",
+                "example": [
+                    { "sentence": "I stick stamps on envelopes.", "chinese": "我在信封上贴邮票。" },
+                    { "sentence": "The glue stuck to my hands.", "chinese": "胶水粘在了我的手上。" },
+                    { "sentence": "The poster has stuck to the wall.", "chinese": "海报已经粘在墙上了。" }
+                ]
+            },
+            {
+                "base": "sting",
+                "past": "stung",
+                "pastParticiple": "stung",
+                "baseChinese": "刺",
+                "pastChinese": "刺了",
+                "participleChinese": "已刺",
+                "example": [
+                    { "sentence": "Bees sting if you disturb them.", "chinese": "如果你打扰蜜蜂，它们会刺你。" },
+                    { "sentence": "The wasp stung me yesterday.", "chinese": "昨天黄蜂刺了我。" },
+                    { "sentence": "He has been stung on the arm.", "chinese": "他的手臂已经被刺了。" }
+                ]
+            },
+            {
+                "base": "swing",
+                "past": "swung",
+                "pastParticiple": "swung",
+                "baseChinese": "荡",
+                "pastChinese": "荡了",
+                "participleChinese": "已荡",
+                "example": [
+                    { "sentence": "Children swing at the park.", "chinese": "孩子们在公园荡秋千。" },
+                    { "sentence": "The gate swung open suddenly.", "chinese": "大门突然荡开了。" },
+                    { "sentence": "The pendulum has swung back.", "chinese": "钟摆已经荡回来了。" }
+                ]
+            }
+        ]
+    },
+    {
+        "rule": "Change vowels: i to o to o",
+        "explanation": "Verbs where the base form has 'i', and both the past tense and past participle have 'o'.",
+        "example": "e.g., 'win' → 'won' → 'won'",
+        "verbs": [
+            {
+                "base": "win",
+                "past": "won",
+                "pastParticiple": "won",
+                "baseChinese": "赢",
+                "pastChinese": "赢了",
+                "participleChinese": "已赢",
+                "example": [
+                    { "sentence": "I win prizes in contests.", "chinese": "我在比赛中赢奖品。" },
+                    { "sentence": "She won the race last week.", "chinese": "她上周赢了比赛。" },
+                    { "sentence": "They have won many trophies.", "chinese": "他们已经赢了很多奖杯。" }
+                ]
+            }
+        ]
+    },
+           
+	{
+        "rule": "Change ending d to t",
+        "explanation": "Verbs where the past tense and past participle are formed by changing from 'd' to 't'.",
+        "example": "e.g., 'bend' → 'bent' → 'bent'",
+        "verbs": [
+            {
+                "base": "bend",
+                "past": "bent",
+                "pastParticiple": "bent",
+                "baseChinese": "弯",
+                "pastChinese": "弯了",
+                "participleChinese": "已弯",
+                "example": [
+                    { "sentence": "I bend the wire into shapes.", "chinese": "我把铁丝弯成各种形状。" },
+                    { "sentence": "He bent the rod yesterday.", "chinese": "他昨天弯了那根杆。" },
+                    { "sentence": "The metal has been bent.", "chinese": "金属已经被弯曲了。" }
+                ]
+            },
+            {
+                "base": "lend",
+                "past": "lent",
+                "pastParticiple": "lent",
+                "baseChinese": "借",
+                "pastChinese": "借了",
+                "participleChinese": "已借",
+                "example": [
+                    { "sentence": "I lend tools to my neighbors.", "chinese": "我把工具借给邻居。" },
+                    { "sentence": "She lent me her pen.", "chinese": "她把笔借给了我。" },
+                    { "sentence": "The book has been lent out.", "chinese": "书已经被借出去了。" }
+                ]
+            },
+ 	   { base: "build", past: "built", pastParticiple: "built", baseChinese: "建", pastChinese: "建了", participleChinese: "已建", 
+                      example: [
+                        { sentence: "We build models for fun.", chinese: "我们为了好玩建模型。" },
+                        { sentence: "They built a shed last month.", chinese: "他们上个月建了一个棚子。" },
+                        { sentence: "The house has been built.", chinese: "房子已经被建好了。" }
+                      ] 
+            },
+
+            {
+                "base": "send",
+                "past": "sent",
+                "pastParticiple": "sent",
+                "baseChinese": "发送",
+                "pastChinese": "发送了",
+                "participleChinese": "已发送",
+                "example": [
+                    { "sentence": "I send letters to my friends.", "chinese": "我给朋友们寄信。" },
+                    { "sentence": "He sent a package yesterday.", "chinese": "他昨天寄了一个包裹。" },
+                    { "sentence": "The email has been sent.", "chinese": "电子邮件已经发送了。" }
+                ]
+            },
+            {
+                "base": "spend",
+                "past": "spent",
+                "pastParticiple": "spent",
+                "baseChinese": "花费",
+                "pastChinese": "花费了",
+                "participleChinese": "已花费",
+                "example": [
+                    { "sentence": "I spend time reading books.", "chinese": "我花时间读书。" },
+                    { "sentence": "They spent the day hiking.", "chinese": "他们花了一天时间徒步旅行。" },
+                    { "sentence": "The money has been spent.", "chinese": "钱已经被花掉了。" }
+                ]
+            }
+	]
+    },
+    {
+        "rule": "Add 't' to the base form",
+        "explanation": "Verbs where the past tense and past participle are formed by adding 't' to the base form.",
+        "example": "e.g., 'bend' → 'bent' → 'bent'",
+        "verbs": [
+            {
+                "base": "burn",
+                "past": "burnt",
+                "pastParticiple": "burnt",
+                "baseChinese": "烧",
+                "pastChinese": "烧了",
+                "participleChinese": "已烧",
+                "example": [
+                    { "sentence": "I burn candles for light.", "chinese": "我烧蜡烛照明。" },
+                    { "sentence": "The fire burnt the logs.", "chinese": "火烧了木头。" },
+                    { "sentence": "The house has been burnt down.", "chinese": "房子已经被烧毁了。" }
+                ]
+            },
+            {
+                "base": "build",
+                "past": "built",
+                "pastParticiple": "built",
+                "baseChinese": "建",
+                "pastChinese": "建了",
+                "participleChinese": "已建",
+                "example": [
+                    { "sentence": "We build models for fun.", "chinese": "我们为了好玩建模型。" },
+                    { "sentence": "They built a shed last month.", "chinese": "他们上个月建了一个棚子。" },
+                    { "sentence": "The house has been built.", "chinese": "房子已经被建好了。" }
+                ]
+            },
+            {
+                "base": "learn",
+                "past": "learnt",
+                "pastParticiple": "learnt",
+                "baseChinese": "学",
+                "pastChinese": "学了",
+                "participleChinese": "已学",
+                "example": [
+                    { "sentence": "I learn new skills every day.", "chinese": "我每天学习新技能。" },
+                    { "sentence": "He learnt coding last year.", "chinese": "他去年学会了编程。" },
+                    { "sentence": "She has learnt to dance.", "chinese": "她已经学会了跳舞。" }
+                ]
+            },
+ 	    {
+                "base": "mean",
+                "past": "meant",
+                "pastParticiple": "meant",
+                "baseChinese": "意思",
+                "pastChinese": "意思了",
+                "participleChinese": "已意思",
+                "example": [
+                    { "sentence": "I mean what I say.", "chinese": "我说的是真心话。" },
+                    { "sentence": "She meant to call you.", "chinese": "她本意是要给你打电话。" },
+                    { "sentence": "His words have meant a lot.", "chinese": "他的话已经意义重大。" }
+                ]
+            },
+            {
+                "base": "spill",
+                "past": "spilt",
+                "pastParticiple": "spilt",
+                "baseChinese": "洒",
+                "pastChinese": "洒了",
+                "participleChinese": "已洒",
+                "example": [
+                    { "sentence": "I spill coffee sometimes.", "chinese": "我有时会洒咖啡。" },
+                    { "sentence": "He spilt milk on the table.", "chinese": "他把牛奶洒在桌子上。" },
+                    { "sentence": "The water has been spilt.", "chinese": "水已经被洒了。" }
+                ]
+            },
+            {
+                "base": "deal",
+                "past": "dealt",
+                "pastParticiple": "dealt",
+                "baseChinese": "处理",
+                "pastChinese": "处理了",
+                "participleChinese": "已处理",
+                "example": [
+                    { "sentence": "I deal cards in the game.", "chinese": "我在游戏中发牌。" },
+                    { "sentence": "She dealt with the issue.", "chinese": "她处理了这个问题。" },
+                    { "sentence": "The problem has been dealt with.", "chinese": "问题已经被处理了。" }
+                ]
+            },
+            {
+                "base": "dream",
+                "past": "dreamt",
+                "pastParticiple": "dreamt",
+                "baseChinese": "梦",
+                "pastChinese": "梦了",
+                "participleChinese": "已梦",
+                "example": [
+                    { "sentence": "I dream about adventures.", "chinese": "我梦见冒险。" },
+                    { "sentence": "He dreamt of flying last night.", "chinese": "他昨晚梦见飞翔。" },
+                    { "sentence": "She has dreamt of success.", "chinese": "她已经梦见过成功了。" }
+                ]
+            }
+        ]
+    },
+    {
+        "rule": "Remove one e and add 't'",
+        "explanation": "Verbs where the past tense and past participle involve changing the base form, often the vowel, and adding 't'.",
+        "example": "e.g., 'feel' → 'felt' → 'felt'",
+        "verbs": [
+            {
+                "base": "feel",
+                "past": "felt",
+                "pastParticiple": "felt",
+                "baseChinese": "感觉",
+                "pastChinese": "感觉了",
+                "participleChinese": "已感觉",
+                "example": [
+                    { "sentence": "I feel the breeze on my skin.", "chinese": "我感觉微风吹在我的皮肤上。" },
+                    { "sentence": "She felt cold this morning.", "chinese": "她今天早上感觉冷。" },
+                    { "sentence": "He has felt tired all day.", "chinese": "他一整天都感觉很累。" }
+                ]
+            },
+            {
+                "base": "keep",
+                "past": "kept",
+                "pastParticiple": "kept",
+                "baseChinese": "保持",
+                "pastChinese": "保持了",
+                "participleChinese": "已保持",
+                "example": [
+                    { "sentence": "I keep my desk organized.", "chinese": "我保持桌子整齐。" },
+                    { "sentence": "He kept the secret for years.", "chinese": "他多年保持了这个秘密。" },
+                    { "sentence": "The rules have been kept.", "chinese": "规则已经被保持了。" }
+                ]
+            },
+            {
+                "base": "sleep",
+                "past": "slept",
+                "pastParticiple": "slept",
+                "baseChinese": "睡",
+                "pastChinese": "睡了",
+                "participleChinese": "已睡",
+                "example": [
+                    { "sentence": "I sleep well every night.", "chinese": "我每晚睡得很好。" },
+                    { "sentence": "She slept through the storm.", "chinese": "她睡过了暴风雨。" },
+                    { "sentence": "He has slept for ten hours.", "chinese": "他已经睡了十个小时。" }
+                ]
+            },
+            {
+                "base": "sweep",
+                "past": "swept",
+                "pastParticiple": "swept",
+                "baseChinese": "扫",
+                "pastChinese": "扫了",
+                "participleChinese": "已扫",
+                "example": [
+                    { "sentence": "I sweep the floor daily.", "chinese": "我每天扫地。" },
+                    { "sentence": "She swept the porch clean.", "chinese": "她把门廊扫干净了。" },
+                    { "sentence": "The room has been swept.", "chinese": "房间已经被扫过了。" }
+                ]
+            },
+            {
+                "base": "weep",
+                "past": "wept",
+                "pastParticiple": "wept",
+                "baseChinese": "哭",
+                "pastChinese": "哭了",
+                "participleChinese": "已哭",
+                "example": [
+                    { "sentence": "Babies weep when hungry.", "chinese": "婴儿饿了会哭。" },
+                    { "sentence": "He wept at the sad movie.", "chinese": "他在悲伤的电影前哭了。" },
+                    { "sentence": "She has wept all night.", "chinese": "她已经哭了一整夜。" }
+                ]
+            }, 
+            {
+                "base": "kneel",
+                "past": "knelt",
+                "pastParticiple": "knelt",
+                "baseChinese": "跪",
+                "pastChinese": "跪了",
+                "participleChinese": "已跪",
+                "example": [
+                    { "sentence": "I kneel during prayers.", "chinese": "我在祈祷时跪下。" },
+                    { "sentence": "She knelt to pick it up.", "chinese": "她跪下来捡它。" },
+                    { "sentence": "He has knelt in respect.", "chinese": "他已经跪下表示尊敬。" }
+                ]
+            }
+            
+            
+        ]
+    },
+
+            {
+                rule: "Change both",
+                explanation: "Verbs where both vowels and consonants change to form past and past participle.",
+                example: "e.g., 'buy' → 'bought' → 'bought'",
+                verbs: [
+                    { base: "bring", past: "brought", pastParticiple: "brought", baseChinese: "带来", pastChinese: "带来了", participleChinese: "已带来", 
+                      example: [
+                        { sentence: "I bring food to the picnic.", chinese: "我带食物去野餐。" },
+                        { sentence: "She brought gifts yesterday.", chinese: "她昨天带来了礼物。" },
+                        { sentence: "He has brought good news.", chinese: "他已经带来了好消息。" }
+                      ] },
+                    { base: "buy", past: "bought", pastParticiple: "bought", baseChinese: "买", pastChinese: "买了", participleChinese: "已买", 
+                      example: [
+                        { sentence: "I buy clothes every month.", chinese: "我每个月买衣服。" },
+                        { sentence: "He bought a car last week.", chinese: "他上周买了一辆车。" },
+                        { sentence: "She has bought new shoes.", chinese: "她已经买了新鞋子。" }
+                      ] },
+                    { base: "catch", past: "caught", pastParticiple: "caught", baseChinese: "抓", pastChinese: "抓了", participleChinese: "已抓", 
+                      example: [
+                        { sentence: "I catch fish in the river.", chinese: "我在河里抓鱼。" },
+                        { sentence: "She caught the thief yesterday.", chinese: "她昨天抓住了小偷。" },
+                        { sentence: "He has caught a cold.", chinese: "他已经感冒了。" }
+                      ] },
+                    { base: "fight", past: "fought", pastParticiple: "fought", baseChinese: "打", pastChinese: "打了", participleChinese: "已打", 
+                      example: [
+                        { sentence: "I fight for my beliefs.", chinese: "我为我的信念而战。" },
+                        { sentence: "They fought in the match.", chinese: "他们在比赛中打了。" },
+                        { sentence: "He has fought many battles.", chinese: "他已经打了很多仗。" }
+                      ] },
+                    { base: "seek", past: "sought", pastParticiple: "sought", baseChinese: "寻找", pastChinese: "寻找了", participleChinese: "已寻找", 
+                      example: [
+                        { sentence: "I seek answers to questions.", chinese: "我寻找问题的答案。" },
+                        { sentence: "She sought help last night.", chinese: "她昨晚寻求了帮助。" },
+                        { sentence: "He has sought advice.", chinese: "他已经寻求了建议。" }
+                      ] },
+                    { base: "teach", past: "taught", pastParticiple: "taught", baseChinese: "教", pastChinese: "教了", participleChinese: "已教", 
+                      example: [
+                        { sentence: "I teach math to students.", chinese: "我教学生数学。" },
+                        { sentence: "He taught me to swim.", chinese: "他教我游泳。" },
+                        { sentence: "She has taught for years.", chinese: "她已经教了很多年。" }
+                      ] },
+                    { base: "think", past: "thought", pastParticiple: "thought", baseChinese: "想", pastChinese: "想了", participleChinese: "已想", 
+                      example: [
+                        { sentence: "I think about my plans.", chinese: "我想我的计划。" },
+                        { sentence: "She thought of a solution.", chinese: "她想出了一个解决方案。" },
+                        { sentence: "He has thought it over.", chinese: "他已经考虑过了。" }
+                      ] },
+                    { base: "sell", past: "sold", pastParticiple: "sold", baseChinese: "卖", pastChinese: "卖了", participleChinese: "已卖", 
+                      example: [
+                        { sentence: "I sell cookies at the fair.", chinese: "我在集市上卖饼干。" },
+                        { sentence: "He sold his bike yesterday.", chinese: "他昨天卖了他的自行车。" },
+                        { sentence: "The car has been sold.", chinese: "车已经被卖掉了。" }
+                      ] },
+                    { base: "tell", past: "told", pastParticiple: "told", baseChinese: "告诉", pastChinese: "告诉了", participleChinese: "已告诉", 
+                      example: [
+                        { sentence: "I tell jokes to my friends.", chinese: "我给朋友们讲笑话。" },
+                        { sentence: "She told me a story.", chinese: "她给我讲了一个故事。" },
+                        { sentence: "He has told the truth.", chinese: "他已经说了真相。" }
+                      ] },
+                    { base: "say", past: "said", pastParticiple: "said", baseChinese: "说", pastChinese: "说了", participleChinese: "已说", 
+                      example: [
+                        { sentence: "I say goodbye every evening.", chinese: "我每晚说再见。" },
+                        { sentence: "She said yes to the plan.", chinese: "她对计划说了是的。" },
+                        { sentence: "He has said enough.", chinese: "他已经说了够多了。" }
+                      ] },
+                    { base: "stand", past: "stood", pastParticiple: "stood", baseChinese: "站", pastChinese: "站了", participleChinese: "已站", 
+                      example: [
+                        { sentence: "I stand at the bus stop.", chinese: "我站在公交车站。" },
+                        { sentence: "He stood up to speak.", chinese: "他站起来说话。" },
+                        { sentence: "She has stood there all day.", chinese: "她已经整天站在那里了。" }
+                      ] },
+                    { base: "understand", past: "understood", pastParticiple: "understood", baseChinese: "理解", pastChinese: "理解了", participleChinese: "已理解", 
+                      example: [
+                        { sentence: "I understand simple instructions.", chinese: "我理解简单的指令。" },
+                        { sentence: "She understood the rules.", chinese: "她理解了规则。" },
+                        { sentence: "He has understood the lesson.", chinese: "他已经理解了这节课。" }
+                      ] },
+                    { base: "find", past: "found", pastParticiple: "found", baseChinese: "找到", pastChinese: "找到了", participleChinese: "已找到", 
+                      example: [
+                        { sentence: "I find treasures in books.", chinese: "我在书里找到宝藏。" },
+                        { sentence: "He found his lost wallet.", chinese: "他找到了他丢失的钱包。" },
+                        { sentence: "She has found a new job.", chinese: "她已经找到了一份新工作。" }
+                      ] },
+                    { base: "grind", past: "ground", pastParticiple: "ground", baseChinese: "磨", pastChinese: "磨了", participleChinese: "已磨", 
+                      example: [
+                        { sentence: "I grind spices for cooking.", chinese: "我磨香料做饭。" },
+                        { sentence: "She ground the coffee beans.", chinese: "她磨了咖啡豆。" },
+                        { sentence: "The grains have been ground.", chinese: "谷物已经被磨碎了。" }
+                      ] },
+                    { base: "hold", past: "held", pastParticiple: "held", baseChinese: "持", pastChinese: "持了", participleChinese: "已持", 
+                      example: [
+                        { sentence: "I hold the cup carefully.", chinese: "我小心地拿着杯子。" },
+                        { sentence: "He held the trophy high.", chinese: "他高高地举着奖杯。" },
+                        { sentence: "She has held the record.", chinese: "她已经保持了记录。" }
+                      ] },
+                    { base: "shoot", past: "shot", pastParticiple: "shot", baseChinese: "射", pastChinese: "射了", participleChinese: "已射", 
+                      example: [
+                        { sentence: "I shoot photos of nature.", chinese: "我拍摄自然照片。" },
+                        { sentence: "He shot an arrow at the target.", chinese: "他向目标射了一箭。" },
+                        { sentence: "The film has been shot.", chinese: "电影已经被拍摄了。" }
+                      ] },
+                    { base: "sit", past: "sat", pastParticiple: "sat", baseChinese: "坐", pastChinese: "坐了", participleChinese: "已坐", 
+                      example: [
+                        { sentence: "I sit by the window.", chinese: "我坐在窗边。" },
+                        { sentence: "She sat on the bench.", chinese: "她坐在长椅上。" },
+                        { sentence: "He has sat there for hours.", chinese: "他已经坐在那里好几个小时了。" }
+                      ] },
+                    { base: "lay", past: "laid", pastParticiple: "laid", baseChinese: "放置", pastChinese: "放置了", participleChinese: "已放置", 
+                      example: [
+                        { sentence: "I lay the table for dinner.", chinese: "我为晚餐摆桌子。" },
+                        { sentence: "She laid the blanket down.", chinese: "她把毯子铺下来。" },
+                        { sentence: "The eggs have been laid.", chinese: "鸡蛋已经被放置好了。" }
+                      ] }
+                ]
+            },
+            {
+                rule: "Remain the same",
+                explanation: "Verbs where the base, past, and past participle forms are identical.",
+                example: "e.g., 'cut' → 'cut' → 'cut'",
+                verbs: [
+                    { base: "bet", past: "bet", pastParticiple: "bet", baseChinese: "打赌", pastChinese: "打赌了", participleChinese: "已打赌", 
+                      example: [
+                        { sentence: "I bet on sports games.", chinese: "我在体育比赛上下注。" },
+                        { sentence: "He bet all his money.", chinese: "他赌上了所有的钱。" },
+                        { sentence: "She has bet on the horse.", chinese: "她已经赌了这匹马。" }
+                      ] },
+                    { base: "burst", past: "burst", pastParticiple: "burst", baseChinese: "爆", pastChinese: "爆了", participleChinese: "已爆", 
+                      example: [
+                        { sentence: "Balloons burst with a loud noise.", chinese: "气球爆裂时发出很大的声音。" },
+                        { sentence: "The pipe burst last night.", chinese: "昨晚管道爆了。" },
+                        { sentence: "The dam has burst open.", chinese: "大坝已经爆开了。" }
+                      ] },
+                    { base: "cast", past: "cast", pastParticiple: "cast", baseChinese: "投", pastChinese: "投了", participleChinese: "已投", 
+                      example: [
+                        { sentence: "I cast my vote in elections.", chinese: "我在选举中投票。" },
+                        { sentence: "She cast a spell on him.", chinese: "她对他施了一个咒。" },
+                        { sentence: "The shadow has been cast.", chinese: "影子已经被投下了。" }
+                      ] },
+                    { base: "cost", past: "cost", pastParticiple: "cost", baseChinese: "花费", pastChinese: "花费了", participleChinese: "已花费", 
+                      example: [
+                        { sentence: "This shirt costs a lot.", chinese: "这件衬衫花费很多。" },
+                        { sentence: "The trip cost too much.", chinese: "这次旅行花费太多了。" },
+                        { sentence: "It has cost us dearly.", chinese: "它已经让我们付出了昂贵的代价。" }
+                      ] },
+                    { base: "cut", past: "cut", pastParticiple: "cut", baseChinese: "切", pastChinese: "切了", participleChinese: "已切", 
+                      example: [
+                        { sentence: "I cut paper with scissors.", chinese: "我用剪刀剪纸。" },
+                        { sentence: "She cut the cake for us.", chinese: "她为我们切了蛋糕。" },
+                        { sentence: "The wood has been cut.", chinese: "木头已经被切好了。" }
+                      ] },
+                    { base: "hit", past: "hit", pastParticiple: "hit", baseChinese: "打", pastChinese: "打了", participleChinese: "已打", 
+                      example: [
+                        { sentence: "I hit the ball with a bat.", chinese: "我用球棒击球。" },
+                        { sentence: "He hit the target perfectly.", chinese: "他完美地击中了目标。" },
+                        { sentence: "The song has hit the charts.", chinese: "这首歌已经登上排行榜。" }
+                      ] },
+                    { base: "hurt", past: "hurt", pastParticiple: "hurt", baseChinese: "伤害", pastChinese: "伤害了", participleChinese: "已伤害", 
+                      example: [
+                        { sentence: "I hurt my knee playing.", chinese: "我玩的时候伤了膝盖。" },
+                        { sentence: "She hurt her hand yesterday.", chinese: "她昨天伤了手。" },
+                        { sentence: "He has hurt his pride.", chinese: "他已经伤害了他的自尊。" }
+                      ] },
+                    { base: "let", past: "let", pastParticiple: "let", baseChinese: "让", pastChinese: "让了", participleChinese: "已让", 
+                      example: [
+                        { sentence: "I let my friends borrow books.", chinese: "我让朋友们借书。" },
+                        { sentence: "She let the cat out.", chinese: "她让猫出去了。" },
+                        { sentence: "He has let me try first.", chinese: "他已经让我先试了。" }
+                      ] },
+                    { base: "put", past: "put", pastParticiple: "put", baseChinese: "放", pastChinese: "放了", participleChinese: "已放", 
+                      example: [
+                        { sentence: "I put my keys on the table.", chinese: "我把钥匙放在桌子上。" },
+                        { sentence: "He put the box down.", chinese: "他放下了盒子。" },
+                        { sentence: "She has put away her toys.", chinese: "她已经收起了她的玩具。" }
+                      ] },
+                    { base: "quit", past: "quit", pastParticiple: "quit", baseChinese: "退出", pastChinese: "退出了", participleChinese: "已退出", 
+                      example: [
+                        { sentence: "I quit bad habits easily.", chinese: "我很容易戒掉坏习惯。" },
+                        { sentence: "She quit her job last month.", chinese: "她上个月辞了工作。" },
+                        { sentence: "He has quit the team.", chinese: "他已经退出了团队。" }
+                      ] },
+                    { base: "set", past: "set", pastParticiple: "set", baseChinese: "设置", pastChinese: "设置了", participleChinese: "已设置", 
+                      example: [
+                        { sentence: "I set the alarm every night.", chinese: "我每晚设置闹钟。" },
+                        { sentence: "He set the table for guests.", chinese: "他为客人设置了桌子。" },
+                        { sentence: "The stage has been set.", chinese: "舞台已经被设置好了。" }
+                      ] },
+                    { base: "shed", past: "shed", pastParticiple: "shed", baseChinese: "脱落", pastChinese: "脱落了", participleChinese: "已脱落", 
+                      example: [
+                        { sentence: "Snakes shed their skin.", chinese: "蛇脱落它们的皮。" },
+                        { sentence: "The tree shed its leaves.", chinese: "树脱落了叶子。" },
+                        { sentence: "The coat has shed its fur.", chinese: "外套已经脱落了毛。" }
+                      ] },
+                    { base: "shut", past: "shut", pastParticiple: "shut", baseChinese: "关", pastChinese: "关了", participleChinese: "已关", 
+                      example: [
+                        { sentence: "I shut the windows at night.", chinese: "我晚上关窗户。" },
+                        { sentence: "She shut the gate quietly.", chinese: "她悄悄地关上了门。" },
+                        { sentence: "The store has shut early.", chinese: "商店已经提前关门了。" }
+                      ] },
+                    { base: "split", past: "split", pastParticiple: "split", baseChinese: "分裂", pastChinese: "分裂了", participleChinese: "已分裂", 
+                      example: [
+                        { sentence: "I split logs with an axe.", chinese: "我用斧头劈木头。" },
+                        { sentence: "They split the profits evenly.", chinese: "他们平分了利润。" },
+                        { sentence: "The group has split apart.", chinese: "小组已经分裂了。" }
+                      ] },
+                    { base: "spread", past: "spread", pastParticiple: "spread", baseChinese: "传播", pastChinese: "传播了", participleChinese: "已传播", 
+                      example: [
+                        { sentence: "I spread jam on toast.", chinese: "我在吐司上涂果酱。" },
+                        { sentence: "She spread the news quickly.", chinese: "她很快传播了消息。" },
+                        { sentence: "The rumor has spread widely.", chinese: "谣言已经广泛传播了。" }
+                      ] },
+                    { base: "thrust", past: "thrust", pastParticiple: "thrust", baseChinese: "推", pastChinese: "推了", participleChinese: "已推", 
+                      example: [
+                        { sentence: "I thrust the stick into the ground.", chinese: "我把棍子推入地面。" },
+                        { sentence: "He thrust the door open.", chinese: "他用力推开了门。" },
+                        { sentence: "The idea has been thrust upon us.", chinese: "这个想法已经被强加给我们了。" }
+                      ] }
+                ]
+            },
+       {
+                rule: "Vowel shift with -n ending",
+                explanation: "Verbs where the past and past participle involve a vowel shift and often end in -n or -en.",
+                example: "e.g., 'break' → 'broke' → 'broken'",
+                verbs: [
+                    { base: "bear", past: "bore", pastParticiple: "borne", baseChinese: "承受", pastChinese: "承受了", participleChinese: "已承受", 
+                      example: [
+                        { sentence: "I bear the heavy load.", chinese: "我承受了重担。" },
+                        { sentence: "She bore the pain silently.", chinese: "她默默地承受了痛苦。" },
+                        { sentence: "The burden has been borne by all.", chinese: "负担已被大家承受。" }
+                      ] },
+                    { base: "break", past: "broke", pastParticiple: "broken", baseChinese: "打破", pastChinese: "打破了", participleChinese: "已打破", 
+                      example: [
+                        { sentence: "I break the glass sometimes.", chinese: "我有时打破玻璃。" },
+                        { sentence: "She broke the vase yesterday.", chinese: "她昨天打破了花瓶。" },
+                        { sentence: "The window has been broken.", chinese: "窗户已被打破。" }
+                      ] },
+                    { base: "choose", past: "chose", pastParticiple: "chosen", baseChinese: "选择", pastChinese: "选择了", participleChinese: "已选择", 
+                      example: [
+                        { sentence: "I choose my clothes carefully.", chinese: "我小心选择衣服。" },
+                        { sentence: "He chose the red shirt yesterday.", chinese: "他昨天选择了红衬衫。" },
+                        { sentence: "She has been chosen for the team.", chinese: "她已被选入团队。" }
+                      ] },
+                    { base: "freeze", past: "froze", pastParticiple: "frozen", baseChinese: "冻", pastChinese: "冻了", participleChinese: "已冻", 
+                      example: [
+                        { sentence: "I freeze water to make ice.", chinese: "我冻水来制冰。" },
+                        { sentence: "The lake froze last night.", chinese: "昨晚湖面冻住了。" },
+                        { sentence: "The food has been frozen.", chinese: "食物已被冷冻。" }
+                      ] },
+                    { base: "speak", past: "spoke", pastParticiple: "spoken", baseChinese: "说", pastChinese: "说了", participleChinese: "已说", 
+                      example: [
+                        { sentence: "I speak English every day.", chinese: "我每天说英语。" },
+                        { sentence: "She spoke softly yesterday.", chinese: "她昨天轻声说话。" },
+                        { sentence: "The words have been spoken.", chinese: "话已被说出。" }
+                      ] },
+                    { base: "steal", past: "stole", pastParticiple: "stolen", baseChinese: "偷", pastChinese: "偷了", participleChinese: "已偷", 
+                      example: [
+                        { sentence: "I steal cookies sometimes.", chinese: "我有时偷饼干。" },
+                        { sentence: "He stole a book yesterday.", chinese: "他昨天偷了一本书。" },
+                        { sentence: "The money has been stolen.", chinese: "钱已被偷走。" }
+                      ] },
+                    { base: "swear", past: "swore", pastParticiple: "sworn", baseChinese: "发誓", pastChinese: "发誓了", participleChinese: "已发誓", 
+                      example: [
+                        { sentence: "I swear to tell the truth.", chinese: "我发誓说实话。" },
+                        { sentence: "She swore yesterday.", chinese: "她昨天发誓了。" },
+                        { sentence: "He has been sworn in.", chinese: "他已被宣誓就职。" }
+                      ] },
+                    { base: "tear", past: "tore", pastParticiple: "torn", baseChinese: "撕", pastChinese: "撕了", participleChinese: "已撕", 
+                      example: [
+                        { sentence: "I tear paper sometimes.", chinese: "我有时撕纸。" },
+                        { sentence: "She tore the letter yesterday.", chinese: "她昨天撕了信。" },
+                        { sentence: "The shirt has been torn.", chinese: "衬衫已被撕破。" }
+                      ] },
+                    { base: "wear", past: "wore", pastParticiple: "worn", baseChinese: "穿", pastChinese: "穿了", participleChinese: "已穿", 
+                      example: [
+                        { sentence: "I wear a jacket in winter.", chinese: "我冬天穿夹克。" },
+                        { sentence: "She wore a dress yesterday.", chinese: "她昨天穿了裙子。" },
+                        { sentence: "The shoes have been worn out.", chinese: "鞋子已被穿坏。" }
+                      ] },
+                    { base: "weave", past: "wove", pastParticiple: "woven", baseChinese: "编织", pastChinese: "编织了", participleChinese: "已编织", 
+                      example: [
+                        { sentence: "I weave baskets sometimes.", chinese: "我有时编织篮子。" },
+                        { sentence: "She wove a scarf yesterday.", chinese: "她昨天织了一条围巾。" },
+                        { sentence: "The cloth has been woven.", chinese: "布料已被织好。" }
+                      ] }
+                ]
+            },
+            {
+                rule: "Past ends in -w, participle in -n",
+                explanation: "Verbs where the past tense ends in -w and the past participle ends in -n or -wn.",
+                example: "e.g., 'blow' → 'blew' → 'blown'",
+                verbs: [
+                    { base: "blow", past: "blew", pastParticiple: "blown", baseChinese: "吹", pastChinese: "吹了", participleChinese: "已吹", 
+                      example: [
+                        { sentence: "I blow bubbles with gum.", chinese: "我用口香糖吹泡泡。" },
+                        { sentence: "The wind blew hard yesterday.", chinese: "昨天风吹得很猛。" },
+                        { sentence: "The leaves have been blown away.", chinese: "树叶已被吹走。" }
+                      ] },
+                    { base: "draw", past: "drew", pastParticiple: "drawn", baseChinese: "画", pastChinese: "画了", participleChinese: "已画", 
+                      example: [
+                        { sentence: "I draw pictures every day.", chinese: "我每天画画。" },
+                        { sentence: "She drew a flower yesterday.", chinese: "她昨天画了一朵花。" },
+                        { sentence: "The map has been drawn carefully.", chinese: "地图已被仔细画好。" }
+                      ] },
+                    { base: "fly", past: "flew", pastParticiple: "flown", baseChinese: "飞", pastChinese: "飞了", participleChinese: "已飞", 
+                      example: [
+                        { sentence: "I fly kites on weekends.", chinese: "我周末放风筝。" },
+                        { sentence: "The bird flew away yesterday.", chinese: "昨天鸟儿飞走了。" },
+                        { sentence: "The plane has flown to Paris.", chinese: "飞机已飞往巴黎。" }
+                      ] },
+                    { base: "grow", past: "grew", pastParticiple: "grown", baseChinese: "成长", pastChinese: "成长了", participleChinese: "已成长", 
+                      example: [
+                        { sentence: "I grow plants in my garden.", chinese: "我在花园里种植物。" },
+                        { sentence: "The tree grew tall last year.", chinese: "去年树长高了。" },
+                        { sentence: "The kids have grown so fast.", chinese: "孩子们已长得很快。" }
+                      ] },
+                    { base: "know", past: "knew", pastParticiple: "known", baseChinese: "知道", pastChinese: "知道了", participleChinese: "已知道", 
+                      example: [
+                        { sentence: "I know the answer now.", chinese: "我现在知道答案。" },
+                        { sentence: "He knew the truth yesterday.", chinese: "他昨天知道了真相。" },
+                        { sentence: "She has been known for years.", chinese: "她多年来已被认识。" }
+                      ] },
+                    { base: "throw", past: "threw", pastParticiple: "thrown", baseChinese: "扔", pastChinese: "扔了", participleChinese: "已扔", 
+                      example: [
+                        { sentence: "I throw the ball every day.", chinese: "我每天扔球。" },
+                        { sentence: "He threw it away yesterday.", chinese: "他昨天把它扔了。" },
+                        { sentence: "The trash has been thrown out.", chinese: "垃圾已被扔掉。" }
+                      ] }
+                ]
+            },
+            {
+                rule: "Past and participle identical",
+                explanation: "Verbs where the past and past participle forms are the same, often with a vowel change.",
+                example: "e.g., 'beat' → 'beat' → 'beaten'",
+                verbs: [
+                    { base: "beat", past: "beat", pastParticiple: "beaten", baseChinese: "打", pastChinese: "打了", participleChinese: "已打", 
+                      example: [
+                        { sentence: "I beat the drum loudly.", chinese: "我大声敲鼓。" },
+                        { sentence: "He beat the record yesterday.", chinese: "他昨天打破了记录。" },
+                        { sentence: "She has been beaten in the game.", chinese: "她在游戏中被打败了。" }
+                      ] },
+                    { base: "become", past: "became", pastParticiple: "become", baseChinese: "变成", pastChinese: "变成了", participleChinese: "已变成", 
+                      example: [
+                        { sentence: "I become tired after work.", chinese: "我下班后变得很累。" },
+                        { sentence: "She became a doctor last year.", chinese: "她去年变成了医生。" },
+                        { sentence: "He has become famous recently.", chinese: "他最近变得有名了。" }
+                      ] },
+                    { base: "come", past: "came", pastParticiple: "come", baseChinese: "来", pastChinese: "来了", participleChinese: "已来", 
+                      example: [
+                        { sentence: "I come to school every day.", chinese: "我每天来学校。" },
+                        { sentence: "She came late yesterday.", chinese: "她昨天来得晚。" },
+                        { sentence: "They have come to visit us.", chinese: "他们已来拜访我们。" }
+                      ] },
+                    { base: "have", past: "had", pastParticiple: "had", baseChinese: "有", pastChinese: "有了", participleChinese: "已拥有", 
+                      example: [
+                        { sentence: "I have a dog at home.", chinese: "我家里有一只狗。" },
+                        { sentence: "He had a cold yesterday.", chinese: "他昨天感冒了。" },
+                        { sentence: "She has had enough already.", chinese: "她已经受够了。" }
+                      ] },
+                    { base: "hang", past: "hung", pastParticiple: "hung", baseChinese: "挂", pastChinese: "挂了", participleChinese: "已挂", 
+                      example: [
+                        { sentence: "I hang pictures on the wall.", chinese: "我在墙上挂画。" },
+                        { sentence: "She hung the clothes yesterday.", chinese: "她昨天挂了衣服。" },
+                        { sentence: "The painting has been hung up.", chinese: "画已被挂起来。" }
+                      ] },
+                    { base: "shine", past: "shone", pastParticiple: "shone", baseChinese: "照耀", pastChinese: "照耀了", participleChinese: "已照耀", 
+                      example: [
+                        { sentence: "I shine my shoes weekly.", chinese: "我每周擦亮鞋子。" },
+                        { sentence: "The sun shone brightly yesterday.", chinese: "昨天太阳照耀得很明亮。" },
+                        { sentence: "The light has shone all night.", chinese: "灯光已照耀整夜。" }
+                      ] }
+                ]
+            },
+            {
+                rule: "Past in -d/t, participle in -n",
+                explanation: "Verbs where the past tense ends in -d or -t and the past participle ends in -n or -en.",
+                example: "e.g., 'bite' → 'bit' → 'bitten'",
+                verbs: [
+                    { base: "bite", past: "bit", pastParticiple: "bitten", baseChinese: "咬", pastChinese: "咬了", participleChinese: "已咬", 
+                      example: [
+                        { sentence: "I bite the apple daily.", chinese: "我每天咬苹果。" },
+                        { sentence: "The dog bit me yesterday.", chinese: "昨天狗咬了我。" },
+                        { sentence: "He has been bitten by a snake.", chinese: "他已被蛇咬了。" }
+                      ] },
+                    { base: "do", past: "did", pastParticiple: "done", baseChinese: "做", pastChinese: "做了", participleChinese: "已做", 
+                      example: [
+                        { sentence: "I do my homework every night.", chinese: "我每晚做作业。" },
+                        { sentence: "He did the dishes yesterday.", chinese: "他昨天洗了盘子。" },
+                        { sentence: "The work has been done already.", chinese: "工作已被完成。" }
+                      ] },
+                    { base: "drive", past: "drove", pastParticiple: "driven", baseChinese: "驾驶", pastChinese: "驾驶了", participleChinese: "已驾驶", 
+                      example: [
+                        { sentence: "I drive to work every day.", chinese: "我每天开车上班。" },
+                        { sentence: "He drove fast yesterday.", chinese: "他昨天开车很快。" },
+                        { sentence: "The car has been driven away.", chinese: "车已被开走。" }
+                      ] },
+                    { base: "eat", past: "ate", pastParticiple: "eaten", baseChinese: "吃", pastChinese: "吃了", participleChinese: "已吃", 
+                      example: [
+                        { sentence: "I eat breakfast every morning.", chinese: "我每天早上吃早餐。" },
+                        { sentence: "She ate an apple yesterday.", chinese: "她昨天吃了一个苹果。" },
+                        { sentence: "The cake has been eaten already.", chinese: "蛋糕已被吃掉。" }
+                      ] },
+                    { base: "fall", past: "fell", pastParticiple: "fallen", baseChinese: "掉", pastChinese: "掉了", participleChinese: "已掉", 
+                      example: [
+                        { sentence: "I fall off my bike sometimes.", chinese: "我有时从自行车上掉下来。" },
+                        { sentence: "He fell yesterday.", chinese: "他昨天摔倒了。" },
+                        { sentence: "Leaves have fallen from the tree.", chinese: "树叶已从树上掉下。" }
+                      ] },
+                    { base: "forbid", past: "forbade", pastParticiple: "forbidden", baseChinese: "禁止", pastChinese: "禁止了", participleChinese: "已禁止", 
+                      example: [
+                        { sentence: "I forbid smoking in my house.", chinese: "我禁止在我的房子里抽烟。" },
+                        { sentence: "She forbade him yesterday.", chinese: "她昨天禁止了他。" },
+                        { sentence: "It has been forbidden by law.", chinese: "这已被法律禁止。" }
+                      ] },
+                    { base: "forget", past: "forgot", pastParticiple: "forgotten", baseChinese: "忘记", pastChinese: "忘记了", participleChinese: "已忘记", 
+                      example: [
+                        { sentence: "I forget my keys sometimes.", chinese: "我有时忘记带钥匙。" },
+                        { sentence: "He forgot the date yesterday.", chinese: "他昨天忘记了日期。" },
+                        { sentence: "The lesson has been forgotten.", chinese: "这节课已被忘记。" }
+                      ] },
+                    { base: "forgive", past: "forgave", pastParticiple: "forgiven", baseChinese: "原谅", pastChinese: "原谅了", participleChinese: "已原谅", 
+                      example: [
+                        { sentence: "I forgive my friends easily.", chinese: "我很容易原谅朋友。" },
+                        { sentence: "She forgave him yesterday.", chinese: "她昨天原谅了他。" },
+                        { sentence: "He has been forgiven by all.", chinese: "他已被大家原谅。" }
+                      ] },
+                    { base: "get", past: "got", pastParticiple: "gotten", baseChinese: "得到", pastChinese: "得到了", participleChinese: "已得到", 
+                      example: [
+                        { sentence: "I get good grades often.", chinese: "我经常得到好成绩。" },
+                        { sentence: "She got a gift yesterday.", chinese: "她昨天得到了一份礼物。" },
+                        { sentence: "He has gotten better recently.", chinese: "他最近变得更好了。" }
+                      ] },
+                    { base: "give", past: "gave", pastParticiple: "given", baseChinese: "给", pastChinese: "给了", participleChinese: "已给", 
+                      example: [
+                        { sentence: "I give gifts on holidays.", chinese: "我在节日时送礼物。" },
+                        { sentence: "He gave me a book yesterday.", chinese: "他昨天给了我一本书。" },
+                        { sentence: "The award has been given out.", chinese: "奖项已被颁发。" }
+                      ] },
+                    { base: "hide", past: "hid", pastParticiple: "hidden", baseChinese: "藏", pastChinese: "藏了", participleChinese: "已藏", 
+                      example: [
+                        { sentence: "I hide my toys under the bed.", chinese: "我把玩具藏在床下。" },
+                        { sentence: "She hid the gift yesterday.", chinese: "她昨天藏了礼物。" },
+                        { sentence: "The treasure has been hidden.", chinese: "宝藏已被藏起来。" }
+                      ] },
+                    { base: "ride", past: "rode", pastParticiple: "ridden", baseChinese: "骑", pastChinese: "骑了", participleChinese: "已骑", 
+                      example: [
+                        { sentence: "I ride my bike to school.", chinese: "我骑自行车去学校。" },
+                        { sentence: "He rode a horse yesterday.", chinese: "他昨天骑了马。" },
+                        { sentence: "The bike has been ridden today.", chinese: "自行车今天已被骑过。" }
+                      ] },
+                    { base: "rise", past: "rose", pastParticiple: "risen", baseChinese: "上升", pastChinese: "上升了", participleChinese: "已上升", 
+                      example: [
+                        { sentence: "I rise early every morning.", chinese: "我每天早上早起。" },
+                        { sentence: "The sun rose beautifully yesterday.", chinese: "昨天太阳升得很美。" },
+                        { sentence: "Prices have risen this year.", chinese: "今年价格已上升。" }
+                      ] },
+                    { base: "see", past: "saw", pastParticiple: "seen", baseChinese: "看", pastChinese: "看了", participleChinese: "已看", 
+                      example: [
+                        { sentence: "I see the stars every night.", chinese: "我每晚看星星。" },
+                        { sentence: "She saw a movie yesterday.", chinese: "她昨天看了一部电影。" },
+                        { sentence: "He has been seen in town.", chinese: "他已在镇上被看到。" }
+                      ] },
+                    { base: "shake", past: "shook", pastParticiple: "shaken", baseChinese: "摇", pastChinese: "摇了", participleChinese: "已摇", 
+                      example: [
+                        { sentence: "I shake the bottle before use.", chinese: "我在使用前摇瓶子。" },
+                        { sentence: "He shook my hand yesterday.", chinese: "他昨天握了我的手。" },
+                        { sentence: "The ground has been shaken.", chinese: "地面已被震动。" }
+                      ] },
+                    { base: "show", past: "showed", pastParticiple: "shown", baseChinese: "展示", pastChinese: "展示了", participleChinese: "已展示", 
+                      example: [
+                        { sentence: "I show my art to friends.", chinese: "我向朋友展示我的艺术。" },
+                        { sentence: "She showed me a photo yesterday.", chinese: "她昨天给我看了一张照片。" },
+                        { sentence: "The film has been shown already.", chinese: "电影已被展示。" }
+                      ] },
+                    { base: "take", past: "took", pastParticiple: "taken", baseChinese: "拿", pastChinese: "拿了", participleChinese: "已拿", 
+                      example: [
+                        { sentence: "I take my dog for a walk.", chinese: "我带狗去散步。" },
+                        { sentence: "He took a photo yesterday.", chinese: "他昨天拍了一张照片。" },
+                        { sentence: "The prize has been taken.", chinese: "奖品已被拿走。" }
+                      ] },
+                    { base: "wake", past: "woke", pastParticiple: "woken", baseChinese: "醒", pastChinese: "醒了", participleChinese: "已醒", 
+                      example: [
+                        { sentence: "I wake up early daily.", chinese: "我每天早起。" },
+                        { sentence: "She woke me yesterday.", chinese: "她昨天叫醒了我。" },
+                        { sentence: "He has been woken by the noise.", chinese: "他已被噪音吵醒。" }
+                      ] },
+                    { base: "write", past: "wrote", pastParticiple: "written", baseChinese: "写", pastChinese: "写了", participleChinese: "已写", 
+                      example: [
+                        { sentence: "I write letters every week.", chinese: "我每周写信。" },
+                        { sentence: "He wrote a note yesterday.", chinese: "他昨天写了一张便条。" },
+                        { sentence: "The book has been written.", chinese: "书已被写好。" }
+                      ] }
+                ]
+            },
+            {
+                rule: "Completely irregular",
+                explanation: "Verbs with no discernible pattern, highly irregular transformations.",
+                example: "e.g., 'go' → 'went' → 'gone'",
+                verbs: [
+                    { base: "be", past: "was/were", pastParticiple: "been", baseChinese: "是", pastChinese: "是/在了", participleChinese: "已存在", 
+                      example: [
+                        { sentence: "I am happy today.", chinese: "我今天很高兴。" },
+                        { sentence: "I was tired yesterday.", chinese: "我昨天很累。" },
+                        { sentence: "I have been busy all week.", chinese: "我整个星期都很忙。" }
+                      ] },
+                    { base: "go", past: "went", pastParticiple: "gone", baseChinese: "去", pastChinese: "去了", participleChinese: "已去", 
+                      example: [
+                        { sentence: "I go to school every day.", chinese: "我每天去学校。" },
+                        { sentence: "She went shopping yesterday.", chinese: "她昨天去购物了。" },
+                        { sentence: "He has gone to the park.", chinese: "他已去了公园。" }
+                      ] },
+                    { base: "lie", past: "lay", pastParticiple: "lain", baseChinese: "躺", pastChinese: "躺了", participleChinese: "已躺", 
+                      example: [
+                        { sentence: "I lie on the couch often.", chinese: "我经常躺在沙发上。" },
+                        { sentence: "She lay down yesterday.", chinese: "她昨天躺下了。" },
+                        { sentence: "He has lain there for hours.", chinese: "他已躺在那里好几个小时。" }
+                      ] },
+                    { base: "slay", past: "slew", pastParticiple: "slain", baseChinese: "杀", pastChinese: "杀了", participleChinese: "已杀", 
+                      example: [
+                        { sentence: "I slay monsters in the game.", chinese: "我在游戏中杀怪。" },
+                        { sentence: "He slew the dragon yesterday.", chinese: "他昨天杀了龙。" },
+                        { sentence: "The beast has been slain.", chinese: "野兽已被杀死。" }
+                      ] }
+                ]
+            }
+
+        ];
+
+        const baseVerbsDiv = document.getElementById('base-verbs');
+        const transformedVerbsDiv = document.getElementById('transformed-verbs');
+        const verbTunnel = document.getElementById('verb-tunnel');
+        const groupSelect = document.getElementById('group-select');
+        const popup = document.getElementById('popup');
+        const popupContent = document.getElementById('popupContent');
+        const overlay = document.getElementById('overlay');
+        const closePopup = document.getElementById('closePopup');
+
+        function speakWord(word) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 1.0;
+                speechSynthesis.speak(utterance);
+            } else {
+                console.log('TTS not supported');
+            }
+        }
+
+        function showExample(verb) {
+            popupContent.innerHTML = `
+                <div class="example-sentence">
+                    <span class="word">${verb.base}</span>: ${verb.example[0].sentence}
+                    <span class="translation">${verb.example[0].chinese}</span>
+                </div>
+                <div class="example-sentence">
+                    <span class="word">${verb.past}</span>: ${verb.example[1].sentence}
+                    <span class="translation">${verb.example[1].chinese}</span>
+                </div>
+                <div class="example-sentence">
+                    <span class="word">${verb.pastParticiple}</span>: ${verb.example[2].sentence}
+                    <span class="translation">${verb.example[2].chinese}</span>
+                </div>
+            `;
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closeExample() {
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        verbGroups.forEach((group, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${group.rule} - ${group.explanation} (${group.example})`;
+            groupSelect.appendChild(option);
+        });
+
+        function displayVerbs(groupIndex) {
+            while (baseVerbsDiv.children.length > 1) {
+                baseVerbsDiv.removeChild(baseVerbsDiv.lastChild);
+            }
+            while (transformedVerbsDiv.children.length > 1) {
+                transformedVerbsDiv.removeChild(transformedVerbsDiv.lastChild);
+            }
+
+            const selectedVerbs = verbGroups[groupIndex].verbs;
+
+            selectedVerbs.forEach(verb => {
+                const verbDiv = document.createElement('div');
+                verbDiv.className = 'verb';
+                verbDiv.draggable = true;
+                verbDiv.innerHTML = `
+                    ${verb.base} <span>${verb.baseChinese}</span>
+                    <button class="example-btn">!</button>
+                `;
+                verbDiv.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', verb.base);
+                    verbDiv.classList.add('dragging');
+                    speakWord(verb.base);
+                });
+                verbDiv.addEventListener('dragend', () => {
+                    verbDiv.classList.remove('dragging');
+                });
+                const exampleBtn = verbDiv.querySelector('.example-btn');
+                exampleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showExample(verb);
+                });
+                baseVerbsDiv.appendChild(verbDiv);
+            });
+        }
+
+        groupSelect.addEventListener('change', (e) => {
+            displayVerbs(e.target.value);
+        });
+
+        closePopup.addEventListener('click', closeExample);
+        overlay.addEventListener('click', closeExample);
+
+        displayVerbs(0);
+
+        verbTunnel.addEventListener('dragover', (e) => e.preventDefault());
+        verbTunnel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const baseForm = e.dataTransfer.getData('text/plain');
+            const verb = verbGroups[groupSelect.value].verbs.find(v => v.base === baseForm);
+            if (verb) {
+                const container = document.createElement('div');
+                container.className = 'transformed-verb-container';
+
+                const pastDiv = document.createElement('div');
+                pastDiv.className = 'past-tense';
+                pastDiv.innerHTML = `${verb.past} <span>${verb.pastChinese}</span>`;
+
+                const participleDiv = document.createElement('div');
+                participleDiv.className = 'past-participle';
+                participleDiv.innerHTML = `${verb.pastParticiple} <span>${verb.participleChinese}</span>`;
+
+                container.appendChild(pastDiv);
+                container.appendChild(participleDiv);
+                transformedVerbsDiv.appendChild(container);
+
+                setTimeout(() => {
+                    pastDiv.classList.add('visible');
+                    participleDiv.classList.add('visible');
+                    speakWord(verb.past);
+                    setTimeout(() => speakWord(verb.pastParticiple), 1000);
+                }, 10);
+            }
+        });
+    </script>
+</body>
+</html>
